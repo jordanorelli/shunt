@@ -73,10 +73,31 @@ func (l *lexer) emit(t tokenType) {
 	l.clearBuf()
 }
 
-func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-	defer close(l.out)
+func (l *lexer) emitError(format string, args ...interface{}) {
 	l.out <- token{fmt.Sprintf(format, args...), tokenError}
-	return nil
+}
+
+func (l *lexer) fatalf(format string, args ...interface{}) stateFn {
+    l.emitError(format, args...)
+    return nil
+}
+
+func (l *lexer) skipUntil(good string) {
+    for {
+        r := l.next()
+        if r == eof || strings.ContainsRune(good, r) {
+            l.backup()
+            return
+        }
+    }
+}
+
+func (l *lexer) errorf(format string, args ...interface{}) stateFn {
+    l.emitError(format, args...)
+    l.skipUntil("\n\r")
+    l.next()
+    l.clearBuf()
+	return lexWhitespace
 }
 
 func isDigit(r rune) bool {
@@ -124,8 +145,10 @@ func lexWhitespace(l *lexer) stateFn {
 	case r == ')':
 		l.backup()
 		return lexRightParen
+	case r == eof:
+		return nil
 	}
-	panic("illegal rune in lexRoot")
+	return l.errorf("illegal rune in lexRoot: %c", r)
 }
 
 func lexNum(l *lexer) stateFn {
@@ -155,8 +178,10 @@ func lexNum(l *lexer) stateFn {
 		l.backup()
 		l.emit(tokenNumber)
 		return lexRightParen
+	case r == eof:
+		return nil
 	}
-	panic("illegal rune in lexNum")
+	return l.errorf("illegal rune in lexNum: %c", r)
 }
 
 func lexOperator(l *lexer) stateFn {
@@ -165,26 +190,31 @@ func lexOperator(l *lexer) stateFn {
 	case isOperator(r):
 		l.emit(tokenOperator)
 		return lexWhitespace
+	case r == eof:
+		return nil
+	default:
+		return l.errorf("illegal rune in lexOperator: %c", r)
 	}
-	panic("illegal rune in lexOperator")
 }
 
 func lexLeftParen(l *lexer) stateFn {
-	switch l.next() {
+	switch r := l.next(); r {
 	case '(':
 		l.emit(tokenLeftParen)
 		return lexWhitespace
+	default:
+		return l.errorf("illegal rune in lexLeftParen: %c", r)
 	}
-	panic("illegal rune in lexLeftParen")
 }
 
 func lexRightParen(l *lexer) stateFn {
-	switch l.next() {
+	switch r := l.next(); r {
 	case ')':
 		l.emit(tokenRightParen)
 		return lexWhitespace
+	default:
+		return l.errorf("illegal rune in lexRightParen: %c", r)
 	}
-	panic("illegal rune in lexRightParen")
 }
 
 func lex(in io.Reader, c chan token) {

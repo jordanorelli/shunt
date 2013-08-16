@@ -2,15 +2,13 @@ package main
 
 import (
 	"fmt"
+    "errors"
 	"os"
 )
 
-func run(tokens []token) int {
+func run(tokens []token) (int, error) {
 	stack := make([]int, 0, len(tokens))
 	pop := func() int {
-		if len(stack) < 1 {
-			panic("too many operators in run")
-		}
 		n := stack[len(stack)-1]
 		stack = stack[0 : len(stack)-1]
 		return n
@@ -24,16 +22,19 @@ func run(tokens []token) int {
 			push(t.Number())
 		case tokenOperator:
 			op := t.Operator()
+            if len(stack) < 2 {
+                return 0, errors.New("expression has extra operators")
+            }
 			n0, n1 := pop(), pop()
 			push(op.fn(n1, n0))
 		default:
-			panic("bad token in run")
+			return 0, errors.New("expression has unexpected token")
 		}
 	}
 	if len(stack) != 1 {
-		panic("bad stack count at end of expression")
+        return 0, errors.New("expression has extra operands")
 	}
-	return stack[0]
+	return stack[0], nil
 }
 
 func shunt(tokens []token) []token {
@@ -105,13 +106,23 @@ func main() {
 	go lex(os.Stdin, c)
 	buf := make([]token, 0, 32)
 	for t := range c {
-		if t.typ == tokenEnd {
+        switch t.typ {
+        case tokenEnd:
 			tokens := make([]token, len(buf))
 			copy(tokens, buf)
-			fmt.Println(run(shunt(tokens)))
+            n, err := run(shunt(tokens))
+            if err != nil {
+                fmt.Fprintln(os.Stderr, err.Error())
+            } else {
+                fmt.Println(n)
+            }
 			buf = buf[0:0]
 			continue
+        case tokenError:
+            fmt.Println(t)
+            buf = buf[0:0]
+        default:
+            buf = append(buf, t)
 		}
-		buf = append(buf, t)
 	}
 }
