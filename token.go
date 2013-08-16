@@ -47,8 +47,8 @@ func (t token) Number() int {
 }
 
 func (t token) Operator() operator {
-    if t.typ != tokenOperator {
-        panic("can't get operator of non-operator token")
-    }
-    return getOperator(t)
+	if t.typ != tokenOperator {
+		panic("can't get operator of non-operator token")
+	}
+	return getOperator(t)
 }

@@ -61,9 +61,9 @@ func shunt(tokens []token) []token {
 	transfer := func() {
 		keep(pop())
 	}
-    handleOperator := func(t token) {
+	handleOperator := func(t token) {
 		o1 := getOperator(t)
-		for len(stack) > 0 {
+		for len(stack) > 0 && peek().typ == tokenOperator {
 			o2 := getOperator(peek())
 			if o1.precedence < o2.precedence ||
 				(o1.associativity == left && o1.precedence == o2.precedence) {
@@ -80,6 +80,16 @@ func shunt(tokens []token) []token {
 			keep(t)
 		case tokenOperator:
 			handleOperator(t)
+		case tokenLeftParen:
+			push(t)
+		case tokenRightParen:
+			for {
+				t1 := pop()
+				if t1.typ == tokenLeftParen {
+					break
+				}
+				keep(t1)
+			}
 		default:
 			panic("bad token")
 		}

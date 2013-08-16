@@ -28,7 +28,7 @@ var operators = map[string]operator{
 func getOperator(t token) operator {
 	op, ok := operators[t.val]
 	if !ok {
-		panic("bad operator")
+		panic("bad operator " + t.val)
 	}
 	return op
 }

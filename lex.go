@@ -10,7 +10,7 @@ import (
 const eof = -1
 
 var (
-	digits    = "0123456789"
+	digits = "0123456789"
 )
 
 type stateFn func(*lexer) stateFn
@@ -84,16 +84,16 @@ func isDigit(r rune) bool {
 }
 
 func isOperator(r rune) bool {
-    _, ok := operators[string(r)]
-    return ok
+	_, ok := operators[string(r)]
+	return ok
 }
 
 func isTerminator(r rune) bool {
-    switch r {
-    case '\n', '\r':
-        return true
-    }
-    return false
+	switch r {
+	case '\n', '\r':
+		return true
+	}
+	return false
 }
 
 func isWhitespace(r rune) bool {
@@ -115,9 +115,15 @@ func lexWhitespace(l *lexer) stateFn {
 	case isWhitespace(r):
 		l.discard()
 		return lexWhitespace
-    case isTerminator(r):
-        l.emit(tokenEnd)
-        return lexWhitespace
+	case isTerminator(r):
+		l.emit(tokenEnd)
+		return lexWhitespace
+	case r == '(':
+		l.backup()
+		return lexLeftParen
+	case r == ')':
+		l.backup()
+		return lexRightParen
 	}
 	panic("illegal rune in lexRoot")
 }
@@ -135,12 +141,20 @@ func lexNum(l *lexer) stateFn {
 		l.discard()
 		l.emit(tokenNumber)
 		return lexWhitespace
-    case isTerminator(r):
-        l.backup()
-        l.emit(tokenNumber)
-        l.next()
-        l.emit(tokenEnd)
-        return lexWhitespace
+	case isTerminator(r):
+		l.backup()
+		l.emit(tokenNumber)
+		l.next()
+		l.emit(tokenEnd)
+		return lexWhitespace
+	case r == '(':
+		l.backup()
+		l.emit(tokenNumber)
+		return lexLeftParen
+	case r == ')':
+		l.backup()
+		l.emit(tokenNumber)
+		return lexRightParen
 	}
 	panic("illegal rune in lexNum")
 }
@@ -153,6 +167,24 @@ func lexOperator(l *lexer) stateFn {
 		return lexWhitespace
 	}
 	panic("illegal rune in lexOperator")
+}
+
+func lexLeftParen(l *lexer) stateFn {
+	switch l.next() {
+	case '(':
+		l.emit(tokenLeftParen)
+		return lexWhitespace
+	}
+	panic("illegal rune in lexLeftParen")
+}
+
+func lexRightParen(l *lexer) stateFn {
+	switch l.next() {
+	case ')':
+		l.emit(tokenRightParen)
+		return lexWhitespace
+	}
+	panic("illegal rune in lexRightParen")
 }
 
 func lex(in io.Reader, c chan token) {
