@@ -1,8 +1,8 @@
 package main
 
 import (
+	"errors"
 	"fmt"
-    "errors"
 	"os"
 )
 
@@ -22,9 +22,9 @@ func run(tokens []token) (int, error) {
 			push(t.Number())
 		case tokenOperator:
 			op := t.Operator()
-            if len(stack) < 2 {
-                return 0, errors.New("expression has extra operators")
-            }
+			if len(stack) < 2 {
+				return 0, errors.New("expression has extra operators")
+			}
 			n0, n1 := pop(), pop()
 			push(op.fn(n1, n0))
 		default:
@@ -32,7 +32,7 @@ func run(tokens []token) (int, error) {
 		}
 	}
 	if len(stack) != 1 {
-        return 0, errors.New("expression has extra operands")
+		return 0, errors.New("expression has extra operands")
 	}
 	return stack[0], nil
 }
@@ -106,23 +106,23 @@ func main() {
 	go lex(os.Stdin, c)
 	buf := make([]token, 0, 32)
 	for t := range c {
-        switch t.typ {
-        case tokenEnd:
+		switch t.typ {
+		case tokenEnd:
 			tokens := make([]token, len(buf))
 			copy(tokens, buf)
-            n, err := run(shunt(tokens))
-            if err != nil {
-                fmt.Fprintln(os.Stderr, err.Error())
-            } else {
-                fmt.Println(n)
-            }
+			n, err := run(shunt(tokens))
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err.Error())
+			} else {
+				fmt.Println(n)
+			}
 			buf = buf[0:0]
 			continue
-        case tokenError:
-            fmt.Println(t)
-            buf = buf[0:0]
-        default:
-            buf = append(buf, t)
+		case tokenError:
+			fmt.Println(t)
+			buf = buf[0:0]
+		default:
+			buf = append(buf, t)
 		}
 	}
 }

@@ -78,25 +78,25 @@ func (l *lexer) emitError(format string, args ...interface{}) {
 }
 
 func (l *lexer) fatalf(format string, args ...interface{}) stateFn {
-    l.emitError(format, args...)
-    return nil
+	l.emitError(format, args...)
+	return nil
 }
 
 func (l *lexer) skipUntil(good string) {
-    for {
-        r := l.next()
-        if r == eof || strings.ContainsRune(good, r) {
-            l.backup()
-            return
-        }
-    }
+	for {
+		r := l.next()
+		if r == eof || strings.ContainsRune(good, r) {
+			l.backup()
+			return
+		}
+	}
 }
 
 func (l *lexer) errorf(format string, args ...interface{}) stateFn {
-    l.emitError(format, args...)
-    l.skipUntil("\n\r")
-    l.next()
-    l.clearBuf()
+	l.emitError(format, args...)
+	l.skipUntil("\n\r")
+	l.next()
+	l.clearBuf()
 	return lexWhitespace
 }
 
